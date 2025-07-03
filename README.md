@@ -10,6 +10,21 @@ rcm cluster status 127.0.0.1:6379 -a "password"
 # 添加`-s`或`--show-slots`展示详细的slot分布信息
 rcm cluster status 127.0.0.1:6379 -a "password" -s
 ```
+输出示例：
+```text
+================================================================================================================================
+Cluster Version:    7.0.9
+================================================================================================================================
+NodeID                                       Addr                    Role      Mem(GB)         Client          SlotCount   Slots
+------                                       ----                    ----      -------         ------          ---------   -----
+90c7c50bf195ba10e2fbf5a90d12b2ed570e3352     1.1.1.1:6379            master    0.24/10.00      29/20000        5461        ...
+57c63639108496dd5349863a9589408a7f5b385c     1.1.1.2:6379            -slave    0.24/10.00      12/20000                    
+ef2ad9890ab216c311de4f66995bbcb72bada047     1.1.1.1:6380            master    0.24/10.00      31/20000        5461        ...
+8f259674d2742cbcbdaf23c070e032c368090c83     1.1.1.2:6380            -slave    0.24/10.00      15/20000                    
+...         
+Total nodes in cluster: 6
+Total shard in cluster: 3
+```
 - 并发执行 Redis 指令
 ```
 # 在所有节点执行：
@@ -22,6 +37,14 @@ rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -r master
 rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -r slave
 ```
 -n与-c参数互斥，使用 `rcm -h 查看帮助。
+输出示例:
+```text
+Output of `ping` on 1.1.1.1:6379 :
+PONG
+Output of `ping` on 1.1.1.1:6380 :
+PONG
+Done!
+```
 
 ## 2. 安装部署
 ```
