@@ -12,7 +12,7 @@ BUILD_FLAGS += -X '${VARS_PKG}.GitRemote=$(shell git config --get remote.origin.
 all: clean build deploy run
 
 build:
-	GOARCH=amd64 GOOS=linux go build -ldflags="${BUILD_FLAGS}" -o ${BINARY_NAME} main.go
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags="${BUILD_FLAGS}" -o ${BINARY_NAME} main.go
 
 deploy:
 	@mv -f ${BINARY_NAME} /usr/local/bin/

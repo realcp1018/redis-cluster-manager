@@ -65,3 +65,4 @@ go build -o rcm main.go
 ## 3. TODO：
 - [ ] exec 指定-n参数时，地址输出时增加`(node ID)`后缀
 - [ ] exec 不指定-n和-r参数时，默认在seed节点执行指令，新增-r all表示在所有节点执行指令
+- [ ] 新增cluster slots子命令
