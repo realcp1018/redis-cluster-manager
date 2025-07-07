@@ -22,6 +22,7 @@ type Instance struct {
 	ClientsCount   int          // number of clients connected to this instance
 	ClusterEnabled bool         // true if this instance is part of a Redis Cluster
 	Slots          []*SlotRange // list of SlotRange assigned to this instance
+	KeysCount      int          // number of keys in this instance
 	Version        string       // redis version
 }
 
@@ -69,6 +70,7 @@ func (i *Instance) init() error {
 	}
 
 	i.Version = infoMap["redis_version"]
+	i.KeysCount, _ = strconv.Atoi(strings.Split(strings.Split(infoMap["db0"], ",")[0], "=")[1])
 	return nil
 }
 

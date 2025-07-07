@@ -76,15 +76,15 @@ func printClusterStatus(hostPort string, password string) error {
 	}
 	wg.Wait()
 	// Print Cluster Basic Info
-	fmt.Println(strings.Repeat("=", 128))
+	fmt.Println(strings.Repeat("=", 144))
 	fmt.Printf("%-20s", "Cluster Version:")
 	fmt.Println(seedNode.Version)
-	fmt.Println(strings.Repeat("=", 128))
+	fmt.Println(strings.Repeat("=", 144))
 	// Print Node Banner
-	color.Cyan("%-45s%-24s%-10s%-16s%-16s%-12s%s\n", "NodeID", "Addr", "Role", "Mem(GB)", "Client",
-		"SlotCount", "Slots")
-	fmt.Printf("%-45s%-24s%-10s%-16s%-16s%-12s%s\n", "------", "----", "----", "-------", "------",
-		"---------", "-----")
+	color.Cyan("%-45s%-24s%-10s%-16s%-16s%-16s%-12s%s\n", "NodeID", "Addr", "Role", "Mem(GB)", "Keys",
+		"Client", "SlotCount", "Slots")
+	fmt.Printf("%-45s%-24s%-10s%-16s%-16s%-16s%-12s%s\n", "------", "----", "----", "-------", "----",
+		"------", "---------", "-----")
 	// get all masters
 	var clusterMasters []*r.Instance
 	for _, i := range clusterInstances {
@@ -100,6 +100,7 @@ func printClusterStatus(hostPort string, password string) error {
 		fmt.Print(color.RedString("%-24s", m.Addr))
 		fmt.Printf("%-10s", "master")
 		fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", m.UsedMemory, m.MaxMemory))
+		fmt.Printf("%-16s", fmt.Sprintf("%d", m.KeysCount))
 		fmt.Printf("%-16s", fmt.Sprintf("%d/%d", m.ClientsCount, m.MaxClients))
 		fmt.Printf("%-12d", m.GetSlotCount())
 		if showSlots {
@@ -121,6 +122,7 @@ func printClusterStatus(hostPort string, password string) error {
 			fmt.Printf("%-24s", s.Addr)
 			fmt.Printf("%-10s", "-slave")
 			fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", s.UsedMemory, s.MaxMemory))
+			fmt.Printf("%-16s", fmt.Sprintf("%d", m.KeysCount))
 			fmt.Printf("%-16s", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
 			// if slave, skip slot info
 			fmt.Printf("%-12s", "")

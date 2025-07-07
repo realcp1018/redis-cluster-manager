@@ -10,9 +10,10 @@ import (
 var rootCmd = &cobra.Command{
 	Use: vars.AppName,
 	// no need to add short desc for root cmd
-	Long: fmt.Sprintf("%s was designed to manage redis cluster.", vars.AppName),
+	Long: fmt.Sprintf("%s wrcm"+
+		"as designed to manage redis cluster.", vars.AppName),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Use %s -h or --help for details.", vars.AppName)
+		fmt.Printf("Use %s -h or --help for details.\n", vars.AppName)
 	},
 }
 

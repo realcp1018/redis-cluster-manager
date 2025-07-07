@@ -26,3 +26,11 @@ var ForbiddenCmds = map[string]struct{}{
 	"SHUTDOWN": {},
 	"MONITOR":  {},
 }
+
+// filter types for cluster nodes when executing commands
+const (
+	FILTER_NONE = iota
+	FILTER_NODEID
+	FILTER_ADDR
+	FILTER_ROLE
+)
