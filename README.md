@@ -65,7 +65,10 @@ go build -o rcm main.go
 手动build出来的文件不包含版本信息等。
 
 ## TODO：
+#### 1) 改进
 - [x] 支持keysCount展示
 - [x] exec 指定-n参数时，地址输出时增加`(node ID)`后缀
 - [x] exec 不指定-n和-r参数时，默认在seed节点执行指令，新增-r all表示在所有节点执行指令
-- [ ] 新增cluster slots子命令
+#### 2) 新功能
+- [ ] 增加对主从集群的支持
+- [ ] 为cluster增加新的keysmap功能，以直方图形式展示keys在不同长度范围的分布，支持输入逗号分隔的buckets列表，支持采样率设置

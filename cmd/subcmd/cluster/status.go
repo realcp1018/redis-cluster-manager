@@ -76,15 +76,15 @@ func printClusterStatus(hostPort string, password string) error {
 	}
 	wg.Wait()
 	// Print Cluster Basic Info
-	fmt.Println(strings.Repeat("=", 144))
+	fmt.Println(strings.Repeat("=", 149))
 	fmt.Printf("%-20s", "Cluster Version:")
 	fmt.Println(seedNode.Version)
-	fmt.Println(strings.Repeat("=", 144))
+	fmt.Println(strings.Repeat("=", 149))
 	// Print Node Banner
-	color.Cyan("%-45s%-24s%-10s%-16s%-16s%-16s%-12s%s\n", "NodeID", "Addr", "Role", "Mem(GB)", "Keys",
-		"Client", "SlotCount", "Slots")
-	fmt.Printf("%-45s%-24s%-10s%-16s%-16s%-16s%-12s%s\n", "------", "----", "----", "-------", "----",
-		"------", "---------", "-----")
+	color.Cyan("%-45s%-24s%-10s%-16s%-16s%-16s%-12s%s\n", "NodeID", "Address", "Role", "Memory(GB)",
+		"KeysCount", "Clients", "Slots", "SlotRanges")
+	fmt.Printf("%-45s%-24s%-10s%-16s%-16s%-16s%-12s%s\n", "------", "-------", "----", "----------",
+		"---------", "-------", "-----", "----------")
 	// get all masters
 	var clusterMasters []*r.Instance
 	for _, i := range clusterInstances {
