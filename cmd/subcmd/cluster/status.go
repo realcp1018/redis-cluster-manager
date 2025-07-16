@@ -59,12 +59,13 @@ func printClusterStatus(hostPort string, password string) error {
 		wg               sync.WaitGroup
 	)
 	for _, nodeInfo := range clusterNodesInfo {
+		nodeId := nodeInfo[0]
 		addr := nodeInfo[1]
 		wg.Add(1)
-		go func(addr string) {
+		go func(addr, nodeId string) {
 			defer wg.Done()
 			if i, err := r.NewInstance(addr, vars.Password); err != nil {
-				fmt.Printf("failed to create instance for node %s: %v\n", addr, err)
+				fmt.Printf("failed to create instance for node [addr=%s] [node_id=%s]: %v\n", addr, nodeId, err)
 				return
 			} else {
 				i.UpdateNodeIdAndSlots(clusterNodesInfo)
@@ -72,7 +73,7 @@ func printClusterStatus(hostPort string, password string) error {
 				clusterInstances = append(clusterInstances, i)
 				mu.Unlock()
 			}
-		}(addr)
+		}(addr, nodeId)
 	}
 	wg.Wait()
 	// Print Cluster Basic Info
@@ -100,7 +101,7 @@ func printClusterStatus(hostPort string, password string) error {
 		fmt.Print(color.RedString("%-24s", m.Addr))
 		fmt.Printf("%-10s", "master")
 		fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", m.UsedMemory, m.MaxMemory))
-		fmt.Printf("%-16s", fmt.Sprintf("%d", m.KeysCount))
+		fmt.Printf("%-16s", fmt.Sprintf("%s", m.KeysCount))
 		fmt.Printf("%-16s", fmt.Sprintf("%d/%d", m.ClientsCount, m.MaxClients))
 		fmt.Printf("%-12d", m.GetSlotCount())
 		if showSlots {
@@ -122,7 +123,7 @@ func printClusterStatus(hostPort string, password string) error {
 			fmt.Printf("%-24s", s.Addr)
 			fmt.Printf("%-10s", "-slave")
 			fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", s.UsedMemory, s.MaxMemory))
-			fmt.Printf("%-16s", fmt.Sprintf("%d", m.KeysCount))
+			fmt.Printf("%-16s", fmt.Sprintf("%s", m.KeysCount))
 			fmt.Printf("%-16s", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
 			// if slave, skip slot info
 			fmt.Printf("%-12s", "")

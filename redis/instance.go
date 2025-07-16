@@ -22,7 +22,7 @@ type Instance struct {
 	ClientsCount   int          // number of clients connected to this instance
 	ClusterEnabled bool         // true if this instance is part of a Redis Cluster
 	Slots          []*SlotRange // list of SlotRange assigned to this instance
-	KeysCount      int          // number of keys in this instance
+	KeysCount      string       // number of keys in this instance
 	Version        string       // redis version
 }
 
@@ -60,7 +60,7 @@ func (i *Instance) init() error {
 	i.UsedMemory = math.Round(usedMemoryBytes/1024/1024/1024*100) / 100
 
 	i.ClientsCount, _ = strconv.Atoi(infoMap["connected_clients"])
-	i.MaxClients, _ = strconv.Atoi(infoMap["maxclients"])
+	i.MaxClients, _ = strconv.Atoi(infoMap["maxclients"]) // if no maxclients it returns (0,error), we ignore this error
 
 	clusterEnabled := infoMap["cluster_enabled"]
 	if clusterEnabled == "1" {
@@ -70,7 +70,12 @@ func (i *Instance) init() error {
 	}
 
 	i.Version = infoMap["redis_version"]
-	i.KeysCount, _ = strconv.Atoi(strings.Split(strings.Split(infoMap["db0"], ",")[0], "=")[1])
+	db0Info, exist := infoMap["db0"]
+	if exist {
+		i.KeysCount = strings.Split(strings.Split(db0Info, ",")[0], "=")[1]
+	} else {
+		i.KeysCount = "NaN"
+	}
 	return nil
 }
 

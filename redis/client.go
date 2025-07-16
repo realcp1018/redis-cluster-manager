@@ -17,11 +17,8 @@ func newRedisClient(hostPort string, password string) (*redis.Client, error) {
 	}
 	client := redis.NewClient(&opt)
 	pingResult, err := client.Ping(context.Background()).Result()
-	if err != nil {
-		return nil, err
-	}
 	if pingResult != "PONG" {
-		return nil, fmt.Errorf("create redis client failed with a non-PONG response")
+		return nil, fmt.Errorf("create redis client failed with a non-PONG response: [%s], error: %v", pingResult, err)
 	}
 	return client, nil
 }
