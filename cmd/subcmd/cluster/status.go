@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 var (
@@ -57,6 +58,7 @@ func printClusterStatus(hostPort string, password string) error {
 		clusterInstances []*r.Instance
 		mu               sync.Mutex
 		wg               sync.WaitGroup
+		errInstanceCount atomic.Int32 // instances can not be created
 	)
 	for _, nodeInfo := range clusterNodesInfo {
 		nodeId := nodeInfo[0]
@@ -66,6 +68,7 @@ func printClusterStatus(hostPort string, password string) error {
 			defer wg.Done()
 			if i, err := r.NewInstance(addr, vars.Password); err != nil {
 				fmt.Printf("failed to create instance for node [addr=%s] [node_id=%s]: %v\n", addr, nodeId, err)
+				errInstanceCount.Add(1)
 				return
 			} else {
 				i.UpdateNodeIdAndSlots(clusterNodesInfo)
@@ -135,5 +138,8 @@ func printClusterStatus(hostPort string, password string) error {
 	}
 	color.Cyan("Total nodes in cluster: %d\n", len(clusterInstances))
 	color.Cyan("Total shard in cluster: %d\n", len(clusterMasters))
+	if errInstanceCount.Load() != 0 {
+		color.Red("Error nodes in cluster: %d\n", errInstanceCount.Load())
+	}
 	return nil
 }
