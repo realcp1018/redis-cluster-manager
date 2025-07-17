@@ -126,7 +126,7 @@ func printClusterStatus(hostPort string, password string) error {
 			fmt.Printf("%-24s", s.Addr)
 			fmt.Printf("%-10s", "-slave")
 			fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", s.UsedMemory, s.MaxMemory))
-			fmt.Printf("%-16s", fmt.Sprintf("%s", m.KeysCount))
+			fmt.Printf("%-16s", fmt.Sprintf("%s", s.KeysCount))
 			fmt.Printf("%-16s", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
 			// if slave, skip slot info
 			fmt.Printf("%-12s", "")
