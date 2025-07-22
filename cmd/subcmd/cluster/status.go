@@ -60,6 +60,7 @@ func printClusterStatus(hostPort string, password string) error {
 		wg               sync.WaitGroup
 		warnings         sync.Map     // instances can not be created err messages
 		errInstanceCount atomic.Int32 // instances can not be created counter
+		slotsCount       int          // slots count of all masters
 	)
 	for _, nodeInfo := range clusterNodesInfo {
 		nodeId := nodeInfo[0]
@@ -81,20 +82,23 @@ func printClusterStatus(hostPort string, password string) error {
 	}
 	wg.Wait()
 	// Print Cluster Basic Info
-	fmt.Println(strings.Repeat("=", 149))
+	fmt.Println(strings.Repeat("=", 155))
 	fmt.Printf("%-20s", "Cluster Version:")
 	fmt.Println(seedNode.Version)
-	fmt.Println(strings.Repeat("=", 149))
+	fmt.Println(strings.Repeat("=", 155))
 	// Print Node Banner
-	color.Cyan("%-45s%-24s%-10s%-16s%-16s%-16s%-12s%s\n", "NodeID", "Address", "Role", "Memory(GB)",
+	color.Cyan("%-45s%-24s%-16s%-16s%-16s%-16s%-12s%s\n", "NodeID", "Address", "Role", "Memory(GB)",
 		"KeysCount", "Clients", "Slots", "SlotRanges")
-	fmt.Printf("%-45s%-24s%-10s%-16s%-16s%-16s%-12s%s\n", "------", "-------", "----", "----------",
+	fmt.Printf("%-45s%-24s%-16s%-16s%-16s%-16s%-12s%s\n", "------", "-------", "----", "----------",
 		"---------", "-------", "-----", "----------")
 	// get all masters
 	var clusterMasters []*r.Instance
 	for _, i := range clusterInstances {
 		if i.Role == "master" {
 			clusterMasters = append(clusterMasters, i)
+			for _, slot := range i.Slots {
+				slotsCount += slot.SlotCount
+			}
 		}
 	}
 	sortedMasters := r.InstancesAscByAddr(clusterMasters)
@@ -103,9 +107,9 @@ func printClusterStatus(hostPort string, password string) error {
 		// print master info
 		fmt.Print(color.RedString("%-45s", m.NodeID))
 		fmt.Print(color.RedString("%-24s", m.Addr))
-		fmt.Printf("%-10s", "master")
+		fmt.Printf("%-16s", "master")
 		fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", m.UsedMemory, m.MaxMemory))
-		fmt.Printf("%-16s", fmt.Sprintf("%s", m.KeysCount))
+		fmt.Printf("%-16s", m.KeysCount)
 		fmt.Printf("%-16s", fmt.Sprintf("%d/%d", m.ClientsCount, m.MaxClients))
 		fmt.Printf("%-12d", m.GetSlotCount())
 		if showSlots {
@@ -125,9 +129,14 @@ func printClusterStatus(hostPort string, password string) error {
 		for _, s := range sortedSlaves {
 			fmt.Printf("%-45s", s.NodeID)
 			fmt.Printf("%-24s", s.Addr)
-			fmt.Printf("%-10s", "-slave")
+			if s.SlaveInit {
+				fmt.Printf("%-16s", "-slave(init)")
+			} else {
+				fmt.Printf("%-16s", "-slave")
+			}
+
 			fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", s.UsedMemory, s.MaxMemory))
-			fmt.Printf("%-16s", fmt.Sprintf("%s", s.KeysCount))
+			fmt.Printf("%-16s", s.KeysCount)
 			fmt.Printf("%-16s", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
 			// if slave, skip slot info
 			fmt.Printf("%-12s", "")
@@ -146,6 +155,9 @@ func printClusterStatus(hostPort string, password string) error {
 			return true
 		})
 		color.Red("Error nodes in cluster: %d\n", errInstanceCount.Load())
+	}
+	if slotsCount != 16384 {
+		color.Red("Cluster slot count is not 16384. Some slots may be missing or migrating. Please check your cluster status.")
 	}
 	return nil
 }

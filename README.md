@@ -70,8 +70,8 @@ go build -o rcm main.go
 - [x] exec 指定-n参数时，地址输出时增加`(node ID)`后缀
 - [x] exec 不指定-n和-r参数时，默认在seed节点执行指令，新增-r all表示在所有节点执行指令
 - [x] 异常实例信息展示在末尾
-- [ ] 处于全量同步状态的slave key数目后新增(init)标识，表示处于全量同步过程中
-- [ ] 增加slots总数校验
+- [x] 处于全量同步状态的slave role之后新增(init)标识，表示处于全量同步过程中
+- [x] 增加slots总数校验
 #### 2) 新功能
 - [ ] 增加对主从集群的支持
 - [ ] 为cluster增加新的keysmap功能，以直方图形式展示keys在不同长度范围的分布，支持输入逗号分隔的buckets列表，支持采样率设置

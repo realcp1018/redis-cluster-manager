@@ -15,6 +15,7 @@ type Instance struct {
 	Client         *redis.Client
 	NodeID         string       // node ID if this is a cluster instance
 	Role           string       // master or slave
+	SlaveInit      bool         // master_sync_in_progress of a slave
 	Master         string       // master addr if this is a slave, will be "" if this is a master
 	MaxMemory      float64      // maxmemory in GB
 	UsedMemory     float64      // used memory in GB
@@ -52,6 +53,9 @@ func (i *Instance) init() error {
 	i.Role = infoMap["role"]
 	if i.Role == "slave" {
 		i.Master = infoMap["master_host"] + ":" + infoMap["master_port"]
+		if infoMap["master_sync_in_progress"] == "1" {
+			i.SlaveInit = true
+		}
 	}
 
 	maxMemoryBytes, _ := strconv.ParseFloat(infoMap["maxmemory"], 64)
