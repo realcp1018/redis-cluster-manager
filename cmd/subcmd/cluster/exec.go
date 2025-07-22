@@ -10,12 +10,13 @@ import (
 	"redis-cluster-manager/vars"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 var (
 	redisCmd string // the redis command to be executed
 	nodes    string // comma separated nodeID or ip:port
-	role     string // master/slave
+	role     string // master/slave/all
 )
 
 var ExecCmd = &cobra.Command{
@@ -77,6 +78,8 @@ func PrintExecuteResult(hostPort string, password string) error {
 		execInstances    []*r.Instance
 		mu               sync.Mutex
 		wg               sync.WaitGroup
+		warnings         sync.Map     // instances can not be created err messages
+		errInstanceCount atomic.Int32 // instances can not be created counter
 	)
 	for _, nodeInfo := range clusterNodesInfo {
 		addr := nodeInfo[1]
@@ -84,7 +87,8 @@ func PrintExecuteResult(hostPort string, password string) error {
 		go func(addr string) {
 			defer wg.Done()
 			if i, err := r.NewInstance(addr, vars.Password); err != nil {
-				fmt.Printf("failed to create instance for node %s: %v\n", addr, err)
+				warnings.Store(addr, err)
+				errInstanceCount.Add(1)
 				return
 			} else {
 				i.UpdateNodeIdAndSlots(clusterNodesInfo)
@@ -136,6 +140,13 @@ func PrintExecuteResult(hostPort string, password string) error {
 		fmt.Println(stdout)
 		return true
 	})
+	if errInstanceCount.Load() != 0 {
+		color.Cyan("Warnings:")
+		warnings.Range(func(addr, stdout interface{}) bool {
+			color.Red("failed to create instance for node %s: %v\n", addr, err)
+			return true
+		})
+	}
 	color.Cyan("Done!")
 	return nil
 }
@@ -176,21 +187,21 @@ func filterInstances(clusterInstances []*r.Instance) (int, []*r.Instance, error)
 				return filterType, nil, fmt.Errorf("some nodes not found in cluster")
 			}
 		}
-	} else if role == "master" {
+	} else if role == vars.MASTER {
 		filterType = vars.FILTER_ROLE
 		for _, i := range clusterInstances {
 			if i.Role == "master" {
 				execInstances = append(execInstances, i)
 			}
 		}
-	} else if role == "slave" {
+	} else if role == vars.SLAVE {
 		filterType = vars.FILTER_ROLE
 		for _, i := range clusterInstances {
 			if i.Role == "slave" {
 				execInstances = append(execInstances, i)
 			}
 		}
-	} else if role == "all" {
+	} else if role == vars.ALL {
 		filterType = vars.FILTER_ROLE
 		execInstances = clusterInstances // no filter, use all instances
 	} else {

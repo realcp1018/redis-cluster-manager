@@ -58,7 +58,8 @@ func printClusterStatus(hostPort string, password string) error {
 		clusterInstances []*r.Instance
 		mu               sync.Mutex
 		wg               sync.WaitGroup
-		errInstanceCount atomic.Int32 // instances can not be created
+		warnings         sync.Map     // instances can not be created err messages
+		errInstanceCount atomic.Int32 // instances can not be created counter
 	)
 	for _, nodeInfo := range clusterNodesInfo {
 		nodeId := nodeInfo[0]
@@ -67,7 +68,7 @@ func printClusterStatus(hostPort string, password string) error {
 		go func(addr, nodeId string) {
 			defer wg.Done()
 			if i, err := r.NewInstance(addr, vars.Password); err != nil {
-				fmt.Printf("failed to create instance for node [addr=%s] [node_id=%s]: %v\n", addr, nodeId, err)
+				warnings.Store(nodeId, err)
 				errInstanceCount.Add(1)
 				return
 			} else {
@@ -139,6 +140,11 @@ func printClusterStatus(hostPort string, password string) error {
 	color.Cyan("Total nodes in cluster: %d\n", len(clusterInstances))
 	color.Cyan("Total shard in cluster: %d\n", len(clusterMasters))
 	if errInstanceCount.Load() != 0 {
+		color.Cyan("Warnings:")
+		warnings.Range(func(nodeId, stdout interface{}) bool {
+			color.Red("failed to create instance for node [node_id=%s]: %v\n", nodeId, err)
+			return true
+		})
 		color.Red("Error nodes in cluster: %d\n", errInstanceCount.Load())
 	}
 	return nil

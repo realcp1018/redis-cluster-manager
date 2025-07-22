@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"strings"
 	"time"
 )
 
@@ -17,8 +18,14 @@ func newRedisClient(hostPort string, password string) (*redis.Client, error) {
 	}
 	client := redis.NewClient(&opt)
 	pingResult, err := client.Ping(context.Background()).Result()
+	if err != nil {
+		if strings.Contains(err.Error(), "LOADING Redis is loading the dataset in memory") {
+			return client, nil
+		}
+		return nil, fmt.Errorf("create redis client failed with error: %v", err)
+	}
 	if pingResult != "PONG" {
-		return nil, fmt.Errorf("create redis client failed with a non-PONG response: [%s], error: %v", pingResult, err)
+		return nil, fmt.Errorf("create redis client failed with a non-PONG response: [%s]", pingResult)
 	}
 	return client, nil
 }

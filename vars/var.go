@@ -19,6 +19,7 @@ var (
 	Password    string // password for redis default user 'default'
 )
 
+//goland:noinspection ALL
 var ForbiddenCmds = map[string]struct{}{
 	"DEBUG":    {},
 	"FLUSHALL": {},
@@ -28,9 +29,20 @@ var ForbiddenCmds = map[string]struct{}{
 }
 
 // filter types for cluster nodes when executing commands
+//
+//goland:noinspection ALL
 const (
 	FILTER_NONE = iota
 	FILTER_NODEID
 	FILTER_ADDR
 	FILTER_ROLE
+)
+
+// roles when filter type is FILTER_ROLE
+//
+//goland:noinspection ALL
+const (
+	MASTER = "master"
+	SLAVE  = "slave"
+	ALL    = "all"
 )
