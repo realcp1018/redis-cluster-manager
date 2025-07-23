@@ -69,7 +69,7 @@ func printClusterStatus(hostPort string, password string) error {
 		go func(addr, nodeId string) {
 			defer wg.Done()
 			if i, err := r.NewInstance(addr, vars.Password); err != nil {
-				warnings.Store(nodeId, err)
+				warnings.Store(fmt.Sprintf("%s,%s", addr, nodeId), err)
 				errInstanceCount.Add(1)
 				return
 			} else {
@@ -146,12 +146,13 @@ func printClusterStatus(hostPort string, password string) error {
 	for _, i := range clusterInstances {
 		i.Close()
 	}
-	color.Cyan("Total nodes in cluster: %d\n", len(clusterInstances))
-	color.Cyan("Total shard in cluster: %d\n", len(clusterMasters))
+	color.Cyan("Total up masters in cluster: %d\n", len(clusterMasters))
+	color.Cyan("Total up members in cluster: %d\n", len(clusterInstances))
 	if errInstanceCount.Load() != 0 {
 		color.Cyan("Warnings:")
-		warnings.Range(func(nodeId, stdout interface{}) bool {
-			color.Red("failed to create instance for node [node_id=%s]: %v\n", nodeId, err)
+		warnings.Range(func(nodeInfo, stdout interface{}) bool {
+			n := strings.Split(nodeInfo.(string), ",")
+			color.Red("failed to create instance for node [addr=%s] [node_id=%s], error: %v\n", n[0], n[1], err)
 			return true
 		})
 		color.Red("Error nodes in cluster: %d\n", errInstanceCount.Load())

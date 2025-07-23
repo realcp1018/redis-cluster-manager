@@ -82,12 +82,13 @@ func PrintExecuteResult(hostPort string, password string) error {
 		errInstanceCount atomic.Int32 // instances can not be created counter
 	)
 	for _, nodeInfo := range clusterNodesInfo {
+		nodeId := nodeInfo[0]
 		addr := nodeInfo[1]
 		wg.Add(1)
 		go func(addr string) {
 			defer wg.Done()
 			if i, err := r.NewInstance(addr, vars.Password); err != nil {
-				warnings.Store(addr, err)
+				warnings.Store(fmt.Sprintf("%s,%s", addr, nodeId), err)
 				errInstanceCount.Add(1)
 				return
 			} else {
@@ -142,8 +143,9 @@ func PrintExecuteResult(hostPort string, password string) error {
 	})
 	if errInstanceCount.Load() != 0 {
 		color.Cyan("Warnings:")
-		warnings.Range(func(addr, stdout interface{}) bool {
-			color.Red("failed to create instance for node %s: %v\n", addr, err)
+		warnings.Range(func(nodeInfo, stdout interface{}) bool {
+			n := strings.Split(nodeInfo.(string), ",")
+			color.Red("failed to create instance for node [addr=%s] [node_id=%s], error: %v\n", n[0], n[1], err)
 			return true
 		})
 	}
