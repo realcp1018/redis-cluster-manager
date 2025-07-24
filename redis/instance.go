@@ -112,7 +112,7 @@ func (i *Instance) GetSlotCount() int {
 
 // StringSlots returns a string representation of the slots assigned to this instance: "[1] [2-100] [101-200]"
 func (i *Instance) StringSlots() string {
-	if i.Slots == nil || len(i.Slots) == 0 {
+	if i.Slots == nil {
 		return "[]"
 	}
 	slotStr := ""
@@ -136,6 +136,9 @@ type SlotRange struct {
 func newSlotRanges(slotStr string) []*SlotRange {
 	var slotRanges []*SlotRange
 	slots := strings.Split(slotStr, " ")
+	if len(slots) == 0 {
+		return nil
+	}
 	for _, slot := range slots {
 		if strings.Contains(slot, "-") {
 			// it's a range

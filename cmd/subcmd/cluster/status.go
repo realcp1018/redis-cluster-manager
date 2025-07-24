@@ -150,7 +150,7 @@ func printClusterStatus(hostPort string, password string) error {
 	color.Cyan("Total up members in cluster: %d\n", len(clusterInstances))
 	if errInstanceCount.Load() != 0 {
 		color.Cyan("Warnings:")
-		warnings.Range(func(nodeInfo, stdout interface{}) bool {
+		warnings.Range(func(nodeInfo, err interface{}) bool {
 			n := strings.Split(nodeInfo.(string), ",")
 			color.Red("failed to create instance for node [addr=%s] [node_id=%s], error: %v\n", n[0], n[1], err)
 			return true
