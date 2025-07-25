@@ -99,9 +99,6 @@ func (i *Instance) UpdateNodeIdAndSlots(clusterNodesInfo [][]string) {
 }
 
 func (i *Instance) GetSlotCount() int {
-	if i.Slots == nil {
-		return 0
-	}
 	slotCount := 0
 	for _, slotRange := range i.Slots {
 		slotCount += slotRange.SlotCount
@@ -135,10 +132,10 @@ type SlotRange struct {
 // newSlotRanges creates a slice of SlotRange from a string like "1 2-100 101-200"
 func newSlotRanges(slotStr string) []*SlotRange {
 	var slotRanges []*SlotRange
-	slots := strings.Split(slotStr, " ")
-	if len(slots) == 0 {
+	if len(slotStr) == 0 {
 		return nil
 	}
+	slots := strings.Split(slotStr, " ")
 	for _, slot := range slots {
 		if strings.Contains(slot, "-") {
 			// it's a range
