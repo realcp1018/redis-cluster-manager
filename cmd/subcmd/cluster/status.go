@@ -155,10 +155,10 @@ func printClusterStatus(hostPort string, password string) error {
 			color.Red("failed to create instance for node [addr=%s] [node_id=%s], error: %v\n", n[0], n[1], err)
 			return true
 		})
-		color.Red("Error nodes in cluster: %d\n", errInstanceCount.Load())
+		color.Cyan("Error nodes in cluster: %d\n", errInstanceCount.Load())
 	}
 	if slotsCount != 16384 {
-		color.Red("Cluster slot count is not 16384. Some slots may be missing or migrating. Please check your cluster status.")
+		color.Red("Master slot count is not 16384(%d). Some slots missing or migrating. Please check your cluster status.", slotsCount)
 	}
 	return nil
 }
