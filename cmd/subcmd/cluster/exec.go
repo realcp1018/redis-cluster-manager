@@ -6,6 +6,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"net/netip"
+	"redis-cluster-manager/perf"
 	r "redis-cluster-manager/redis"
 	"redis-cluster-manager/vars"
 	"strings"
@@ -27,7 +28,7 @@ If master/slave/all specified, cmd will be run on masters/slaves/all nodes.
 If no nodes&&roles specified, cmd will run on the seed node itself.
 The -n and -r options are mutually exclusive.`,
 	Args:    cobra.ExactArgs(1),
-	Example: fmt.Sprintf("%s cluster exec <seed-node> -a \"xxx\" -c \"PING\" [-n=<nodeID/ip:port,...> | -r=<master/slave/all>]", vars.AppName),
+	Example: fmt.Sprintf("%s cluster exec <seed-node> -a \"password\" -c \"PING\" [-n=<nodeID/ip:port,...> | -r=<master/slave/all>]", vars.AppName),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vars.HostPort = args[0]
 		if len(role) > 0 {
@@ -35,9 +36,12 @@ The -n and -r options are mutually exclusive.`,
 				return fmt.Errorf("role must be `master` or `slave` or `all` when specified")
 			}
 		}
+		f := perf.StartCpuProfile()
+		defer perf.StopCpuProfile(f)
 		if err := printClusterExecuteResult(vars.HostPort); err != nil {
 			return err
 		}
+		perf.MemProfile()
 		return nil
 	},
 }

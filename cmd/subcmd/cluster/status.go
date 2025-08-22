@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"redis-cluster-manager/perf"
 	r "redis-cluster-manager/redis"
 	"redis-cluster-manager/vars"
 	"sort"
@@ -22,13 +23,16 @@ var StatusCmd = &cobra.Command{
 	Short:   "Show cluster status",
 	Long:    `Show cluster status`,
 	Args:    cobra.ExactArgs(1),
-	Example: fmt.Sprintf("%s cluster status <seed-node> -a \"redis\"", vars.AppName),
+	Example: fmt.Sprintf("%s cluster status <seed-node> -a \"password\"", vars.AppName),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vars.HostPort = args[0]
+		f := perf.StartCpuProfile()
+		defer perf.StopCpuProfile(f)
 		err := printClusterStatus(vars.HostPort)
 		if err != nil {
 			return err
 		}
+		perf.MemProfile()
 		return nil
 	},
 }
@@ -174,7 +178,7 @@ func printMasterSlaveStatus(seedNode *r.Instance) error {
 	}
 	var (
 		master         *r.Instance
-		slaves         []*r.Instance
+		upSlaves       []*r.Instance
 		mu             sync.Mutex
 		wg             sync.WaitGroup
 		warnings       sync.Map     // instances can not be created err messages
@@ -194,7 +198,7 @@ func printMasterSlaveStatus(seedNode *r.Instance) error {
 				return
 			} else {
 				mu.Lock()
-				slaves = append(slaves, i)
+				upSlaves = append(upSlaves, i)
 				mu.Unlock()
 			}
 		}(slave)
@@ -215,9 +219,9 @@ func printMasterSlaveStatus(seedNode *r.Instance) error {
 	fmt.Printf("%-16s", master.KeysCount)
 	fmt.Printf("%s\n", fmt.Sprintf("%d/%d", master.ClientsCount, master.MaxClients))
 	// print slaves info
-	sortedSlaves := r.InstancesAscByAddr(slaves)
-	sort.Sort(sortedSlaves)
-	for _, s := range sortedSlaves {
+	sortedUpSlaves := r.InstancesAscByAddr(upSlaves)
+	sort.Sort(sortedUpSlaves)
+	for _, s := range sortedUpSlaves {
 		fmt.Printf("%-24s", s.Addr)
 		if s.SlaveInit {
 			fmt.Printf("%-16s", "-slave(init)")
@@ -229,10 +233,10 @@ func printMasterSlaveStatus(seedNode *r.Instance) error {
 		fmt.Printf("%-16s", s.KeysCount)
 		fmt.Printf("%s\n", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
 	}
-	for _, i := range slaves {
+	for _, i := range upSlaves {
 		i.Close()
 	}
-	color.Cyan("Total up slaves in cluster: %d\n", len(slaves))
+	color.Cyan("Total up slaves in cluster: %d\n", len(upSlaves))
 	if errSlavesCount.Load() != 0 {
 		color.Cyan("Warnings:")
 		warnings.Range(func(addr, err interface{}) bool {

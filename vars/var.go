@@ -19,7 +19,7 @@ var (
 	ClusterName string
 	ClusterID   string
 	Password    string        // password for redis default user 'default'
-	Timeout     time.Duration // timeout in seconds for redis
+	Timeout     time.Duration // timeout duration for redis
 )
 
 //goland:noinspection ALL
@@ -48,4 +48,10 @@ const (
 	ROLE_MASTER = "master"
 	ROLE_SLAVE  = "slave"
 	ROLE_ALL    = "all"
+)
+
+// perf profiler flags
+var (
+	CPUProfiler bool
+	MEMProfiler bool
 )
