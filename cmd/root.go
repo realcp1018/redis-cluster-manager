@@ -22,8 +22,8 @@ func initAll() {
 	initCluster()
 	rootCmd.PersistentFlags().DurationVarP(&vars.Timeout, "timeout", "t", time.Second*3, "timeout setting, default 3s, can be any of time.Duration format(10ms,1s,1m,... )")
 	rootCmd.PersistentFlags().StringVarP(&vars.Password, "password", "a", "", "Redis cluster password")
-	rootCmd.PersistentFlags().BoolVar(&vars.CPUProfiler, "cpupprof", false, "write cpu performance profiler to cpu.pprof")
-	rootCmd.PersistentFlags().BoolVar(&vars.MEMProfiler, "mempprof", false, "write memory performance profiler to mem.pprof")
+	rootCmd.PersistentFlags().BoolVar(&vars.CPUProfiler, "cpupprof", false, "write cpu performance profile to cpu.pprof")
+	rootCmd.PersistentFlags().BoolVar(&vars.MEMProfiler, "mempprof", false, "write memory performance profile to mem.pprof")
 }
 
 func Execute() {
