@@ -1,5 +1,7 @@
 package vars
 
+import "time"
+
 // app version info
 var (
 	AppName    = "rcm" // redis-cluster-manager
@@ -16,7 +18,8 @@ var (
 	HostPort    string
 	ClusterName string
 	ClusterID   string
-	Password    string // password for redis default user 'default'
+	Password    string        // password for redis default user 'default'
+	Timeout     time.Duration // timeout in seconds for redis
 )
 
 //goland:noinspection ALL
@@ -42,7 +45,7 @@ const (
 //
 //goland:noinspection ALL
 const (
-	MASTER = "master"
-	SLAVE  = "slave"
-	ALL    = "all"
+	ROLE_MASTER = "master"
+	ROLE_SLAVE  = "slave"
+	ROLE_ALL    = "all"
 )

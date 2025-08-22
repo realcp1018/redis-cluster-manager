@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"redis-cluster-manager/vars"
+	"time"
 )
 
 var rootCmd = &cobra.Command{
@@ -20,6 +21,7 @@ var rootCmd = &cobra.Command{
 func initAll() {
 	initVersion()
 	initCluster()
+	rootCmd.PersistentFlags().DurationVarP(&vars.Timeout, "timeout", "t", time.Second*3, "timeout in seconds, default 3s")
 	rootCmd.PersistentFlags().StringVarP(&vars.Password, "password", "a", "", "Redis cluster password")
 }
 

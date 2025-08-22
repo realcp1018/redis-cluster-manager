@@ -15,7 +15,7 @@ func Test_Redis(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Redis Info: %v\n", ParseInfoAll(infoAllOutput))
+	fmt.Printf("Redis Info: %v\n", ParseInfo(infoAllOutput))
 
 	slotsInfo, err := client.ClusterSlots(context.Background()).Result()
 	fmt.Printf("Redis Cluster Slots: %v\n", slotsInfo)

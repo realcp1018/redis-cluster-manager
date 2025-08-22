@@ -27,8 +27,8 @@ type Instance struct {
 	Version        string       // redis version
 }
 
-func NewInstance(hostPort, password string) (*Instance, error) {
-	client, err := newRedisClient(hostPort, password)
+func NewInstance(hostPort string) (*Instance, error) {
+	client, err := newRedisClient(hostPort)
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +43,12 @@ func NewInstance(hostPort, password string) (*Instance, error) {
 }
 
 // init initializes the Redis instance by fetching its basic info
-// we need to convert some of the values thus we cannot use json.Unmarshal here
 func (i *Instance) init() error {
-	info, err := i.Client.Info(context.Background(), "all").Result()
+	infoAllOutput, err := i.Client.Info(context.Background(), "all").Result()
 	if err != nil {
 		return err
 	}
-	infoMap := ParseInfoAll(info)
+	infoMap := ParseInfo(infoAllOutput)
 	i.Role = infoMap["role"]
 	if i.Role == "slave" {
 		i.Master = infoMap["master_host"] + ":" + infoMap["master_port"]
@@ -81,6 +80,38 @@ func (i *Instance) init() error {
 		i.KeysCount = "NaN"
 	}
 	return nil
+}
+
+// GetMasterSlaveMembers return members of a master-slave mechanism
+// the first element of returned slice is the master addr
+func (i *Instance) GetMasterSlaveMembers() ([]string, error) {
+	if i.Role == "slave" {
+		master, err := NewInstance(i.Master)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to master %s: %v", i.Master, err)
+		}
+		defer master.Close()
+		if master.Role != "master" {
+			return nil, fmt.Errorf("cascading replication is not supported")
+		}
+		return master.GetMasterSlaveMembers()
+	}
+	members := []string{i.Addr}
+	infoReplOutput, err := i.Client.Info(context.Background(), "replication").Result()
+	if err != nil {
+		return nil, err
+	}
+	replInfo := ParseInfo(infoReplOutput)
+	for k, v := range replInfo {
+		if strings.HasPrefix(k, "slave") {
+			slaveInfo := strings.Split(v, ",")
+			slaveIpInfo, slavePortInfo := slaveInfo[0], slaveInfo[1]
+			slaveIp := strings.Split(slaveIpInfo, "=")[1]
+			slavePort := strings.Split(slavePortInfo, "=")[1]
+			members = append(members, fmt.Sprintf("%s:%s", slaveIp, slavePort))
+		}
+	}
+	return members, nil
 }
 
 // UpdateNodeIdAndSlots updates the NodeID and Slots of the instance using ParseClusterNodes output
@@ -121,51 +152,6 @@ func (i *Instance) StringSlots() string {
 
 func (i *Instance) Close() {
 	i.Client.Close()
-}
-
-type SlotRange struct {
-	Start     int // start of the slot range
-	End       int // end of the slot range
-	SlotCount int
-}
-
-// newSlotRanges creates a slice of SlotRange from a string like "1 2-100 101-200"
-func newSlotRanges(slotStr string) []*SlotRange {
-	var slotRanges []*SlotRange
-	if len(slotStr) == 0 {
-		return nil
-	}
-	slots := strings.Split(slotStr, " ")
-	for _, slot := range slots {
-		if strings.Contains(slot, "-") {
-			// it's a range
-			parts := strings.Split(slot, "-")
-			start, _ := strconv.Atoi(parts[0])
-			end, _ := strconv.Atoi(parts[1])
-			slotRanges = append(slotRanges, &SlotRange{
-				Start:     start,
-				End:       end,
-				SlotCount: end - start + 1,
-			})
-		} else {
-			// it's a single slot
-			slotNum, _ := strconv.Atoi(slot)
-			slotRanges = append(slotRanges, &SlotRange{
-				Start:     slotNum,
-				End:       slotNum,
-				SlotCount: 1,
-			})
-		}
-	}
-	return slotRanges
-}
-
-func (s *SlotRange) ContainsSlot(slot int) bool {
-	return slot >= s.Start && slot <= s.End
-}
-
-func (s *SlotRange) String() string {
-	return fmt.Sprintf("[%d-%d]", s.Start, s.End)
 }
 
 // Sorts Instances by Addr

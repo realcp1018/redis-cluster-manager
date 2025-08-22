@@ -4,17 +4,19 @@ import (
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"redis-cluster-manager/vars"
 	"strings"
-	"time"
 )
 
-func newRedisClient(hostPort string, password string) (*redis.Client, error) {
+func newRedisClient(hostPort string) (*redis.Client, error) {
 	opt := redis.Options{
 		Addr:         hostPort,
-		Password:     password,
+		Password:     vars.Password,
 		PoolSize:     3,
 		MinIdleConns: 3,
-		ReadTimeout:  3 * time.Second,
+		DialTimeout:  vars.Timeout,
+		ReadTimeout:  vars.Timeout,
+		WriteTimeout: vars.Timeout,
 	}
 	client := redis.NewClient(&opt)
 	pingResult, err := client.Ping(context.Background()).Result()

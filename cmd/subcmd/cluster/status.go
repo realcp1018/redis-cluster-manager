@@ -25,7 +25,7 @@ var StatusCmd = &cobra.Command{
 	Example: fmt.Sprintf("%s cluster status <seed-node> -a \"redis\"", vars.AppName),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vars.HostPort = args[0]
-		err := printClusterStatus(vars.HostPort, vars.Password)
+		err := printClusterStatus(vars.HostPort)
 		if err != nil {
 			return err
 		}
@@ -37,15 +37,18 @@ func InitStatus() {
 	StatusCmd.Flags().BoolVarP(&showSlots, "show-slots", "s", false, "Show slots info or not, default false")
 }
 
-func printClusterStatus(hostPort string, password string) error {
-	// we call the provided node as `the seed node`(vars.HostPort&vars.Password above)
-	seedNode, err := r.NewInstance(hostPort, password)
+// printClusterStatus
+// if cluster is a sharding cluster, it shows sharding cluster status
+// if cluster is a master-slave/sentinel cluster, it calls printMasterSlaveStatus
+func printClusterStatus(hostPort string) error {
+	// we call the provided node as `the seed node`(vars.HostPort above)
+	seedNode, err := r.NewInstance(hostPort)
 	if err != nil {
 		return err
 	}
 	defer seedNode.Close()
 	if !seedNode.ClusterEnabled {
-		return fmt.Errorf("only redis sharding cluster supported")
+		return printMasterSlaveStatus(seedNode)
 	}
 	// get cluster instances by running `cluster nodes` on seed node
 	clusterNodesOutput, err := seedNode.Client.ClusterNodes(context.Background()).Result()
@@ -68,7 +71,7 @@ func printClusterStatus(hostPort string, password string) error {
 		wg.Add(1)
 		go func(addr, nodeId string) {
 			defer wg.Done()
-			if i, err := r.NewInstance(addr, vars.Password); err != nil {
+			if i, err := r.NewInstance(addr); err != nil {
 				warnings.Store(fmt.Sprintf("%s,%s", addr, nodeId), err)
 				errInstanceCount.Add(1)
 				return
@@ -159,6 +162,84 @@ func printClusterStatus(hostPort string, password string) error {
 	}
 	if slotsCount != 16384 {
 		color.Red("Master slot count is not 16384(%d). Some slots missing or migrating. Please check your cluster status.", slotsCount)
+	}
+	return nil
+}
+
+// printMasterSlaveStatus print status of a master-slave/sentinel cluster, called by printClusterStatus
+func printMasterSlaveStatus(seedNode *r.Instance) error {
+	members, err := seedNode.GetMasterSlaveMembers()
+	if err != nil {
+		return err
+	}
+	var (
+		master         *r.Instance
+		slaves         []*r.Instance
+		mu             sync.Mutex
+		wg             sync.WaitGroup
+		warnings       sync.Map     // instances can not be created err messages
+		errSlavesCount atomic.Int32 // slaves can not be created counter
+	)
+	// members can be retrieved means master is ok
+	master, _ = r.NewInstance(members[0])
+	defer master.Close()
+	// get slave instances simultaneously
+	for _, slave := range members[1:] {
+		wg.Add(1)
+		go func(addr string) {
+			defer wg.Done()
+			if i, err := r.NewInstance(addr); err != nil {
+				warnings.Store(addr, err)
+				errSlavesCount.Add(1)
+				return
+			} else {
+				mu.Lock()
+				slaves = append(slaves, i)
+				mu.Unlock()
+			}
+		}(slave)
+	}
+	wg.Wait()
+	// Print Cluster Basic Info
+	fmt.Println(strings.Repeat("=", 79))
+	fmt.Printf("%-20s", "Cluster Version:")
+	fmt.Println(seedNode.Version)
+	fmt.Println(strings.Repeat("=", 79))
+	// Print Node Banner
+	color.Cyan("%-24s%-16s%-16s%-16s%s\n", "Address", "Role", "Memory(GB)", "KeysCount", "Clients")
+	fmt.Printf("%-24s%-16s%-16s%-16s%s\n", "-------", "----", "----------", "---------", "-------")
+	// print master info
+	fmt.Print(color.RedString("%-24s", master.Addr))
+	fmt.Printf("%-16s", "master")
+	fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", master.UsedMemory, master.MaxMemory))
+	fmt.Printf("%-16s", master.KeysCount)
+	fmt.Printf("%s\n", fmt.Sprintf("%d/%d", master.ClientsCount, master.MaxClients))
+	// print slaves info
+	sortedSlaves := r.InstancesAscByAddr(slaves)
+	sort.Sort(sortedSlaves)
+	for _, s := range sortedSlaves {
+		fmt.Printf("%-24s", s.Addr)
+		if s.SlaveInit {
+			fmt.Printf("%-16s", "-slave(init)")
+		} else {
+			fmt.Printf("%-16s", "-slave")
+		}
+
+		fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", s.UsedMemory, s.MaxMemory))
+		fmt.Printf("%-16s", s.KeysCount)
+		fmt.Printf("%s\n", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
+	}
+	for _, i := range slaves {
+		i.Close()
+	}
+	color.Cyan("Total up slaves in cluster: %d\n", len(slaves))
+	if errSlavesCount.Load() != 0 {
+		color.Cyan("Warnings:")
+		warnings.Range(func(addr, err interface{}) bool {
+			color.Red("failed to create instance for slave [addr=%v], error: %v\n", addr, err)
+			return true
+		})
+		color.Cyan("Error slaves in cluster: %d\n", errSlavesCount.Load())
 	}
 	return nil
 }

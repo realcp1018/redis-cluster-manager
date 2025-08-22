@@ -6,8 +6,8 @@ import (
 
 // cmd.go: contains methods used to parse redis cmd string outputs
 
-// ParseInfoAll parses the Redis `info all` command output
-func ParseInfoAll(cmdOutput string) map[string]string {
+// ParseInfo parses the Redis `info [section]` command output
+func ParseInfo(cmdOutput string) map[string]string {
 	result := make(map[string]string)
 	lines := strings.Split(cmdOutput, "\n")
 	for _, line := range lines {
