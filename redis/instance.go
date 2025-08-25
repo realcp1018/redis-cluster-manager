@@ -43,7 +43,7 @@ func NewInstance(hostPort string) (*Instance, error) {
 
 // init initializes the Redis instance by fetching its basic info
 func (i *Instance) init() error {
-	infoMap, err := ParseInfoAll(i.Client)
+	infoMap, err := ParseInfo(i.Client, "all")
 	if err != nil {
 		return nil
 	}
@@ -94,7 +94,7 @@ func (i *Instance) GetMasterSlaveMembers() ([]string, error) {
 		return master.GetMasterSlaveMembers()
 	}
 	members := []string{i.Addr}
-	replInfo, err := ParseInfoAll(i.Client)
+	replInfo, err := ParseInfo(i.Client, "replication")
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (i *Instance) GetSentinels() ([]string, error) {
 		}
 	}
 	var result []string
-	for host, _ := range sentinels {
+	for host := range sentinels {
 		result = append(result, host)
 	}
 	return result, nil

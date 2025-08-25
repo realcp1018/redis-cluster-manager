@@ -11,7 +11,7 @@ func TestRedis(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	infoAllResult, err := ParseInfoAll(client)
+	infoAllResult, err := ParseInfo(client, "all")
 	if err != nil {
 		panic(err)
 	}

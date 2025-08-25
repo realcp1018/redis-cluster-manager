@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-// ParseInfoAll parses the Redis `info all` command output
-func ParseInfoAll(client *redis.Client) (map[string]string, error) {
+// ParseInfo parses the Redis `info [section]` command output
+func ParseInfo(client *redis.Client, section string) (map[string]string, error) {
 	result := make(map[string]string)
-	cmdOutput, err := client.Info(context.Background(), "all").Result()
+	cmdOutput, err := client.Info(context.Background(), section).Result()
 	if err != nil {
 		return nil, fmt.Errorf("failed to run info all: %v", err)
 	}
