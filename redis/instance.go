@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"math"
@@ -44,11 +43,10 @@ func NewInstance(hostPort string) (*Instance, error) {
 
 // init initializes the Redis instance by fetching its basic info
 func (i *Instance) init() error {
-	infoAllOutput, err := i.Client.Info(context.Background(), "all").Result()
+	infoMap, err := ParseInfoAll(i.Client)
 	if err != nil {
-		return err
+		return nil
 	}
-	infoMap := ParseInfo(infoAllOutput)
 	i.Role = infoMap["role"]
 	if i.Role == "slave" {
 		i.Master = infoMap["master_host"] + ":" + infoMap["master_port"]
@@ -82,8 +80,7 @@ func (i *Instance) init() error {
 	return nil
 }
 
-// GetMasterSlaveMembers return members of a master-slave mechanism
-// the first element of returned slice is the master addr
+// GetMasterSlaveMembers return members of a master-slave mechanism: []string{"master:port", "slave1:port", "slave2:port", ...}
 func (i *Instance) GetMasterSlaveMembers() ([]string, error) {
 	if i.Role == "slave" {
 		master, err := NewInstance(i.Master)
@@ -97,11 +94,10 @@ func (i *Instance) GetMasterSlaveMembers() ([]string, error) {
 		return master.GetMasterSlaveMembers()
 	}
 	members := []string{i.Addr}
-	infoReplOutput, err := i.Client.Info(context.Background(), "replication").Result()
+	replInfo, err := ParseInfoAll(i.Client)
 	if err != nil {
 		return nil, err
 	}
-	replInfo := ParseInfo(infoReplOutput)
 	for k, v := range replInfo {
 		if strings.HasPrefix(k, "slave") {
 			slaveInfo := strings.Split(v, ",")
@@ -112,6 +108,32 @@ func (i *Instance) GetMasterSlaveMembers() ([]string, error) {
 		}
 	}
 	return members, nil
+}
+
+// GetSentinels get all the sentinel IP of a master-slave cluster: []string{"sentinel1", "sentinel2", ...}
+func (i *Instance) GetSentinels() ([]string, error) {
+	if i.ClusterEnabled {
+		return nil, fmt.Errorf("you can't get sentinels for a sharding cluster")
+	}
+	sentinels := make(map[string]int)
+	connections, err := NewConnections(i.Client)
+	if err != nil {
+		return nil, err
+	}
+	for _, conn := range connections {
+		if strings.HasPrefix(conn.Name, "sentinel-") {
+			host, _, err := conn.GetHostPort()
+			if err != nil {
+				return nil, err
+			}
+			sentinels[host] = 0 // use map as set, value is not used
+		}
+	}
+	var result []string
+	for host, _ := range sentinels {
+		result = append(result, host)
+	}
+	return result, nil
 }
 
 // UpdateNodeIdAndSlots updates the NodeID and Slots of the instance using ParseClusterNodes output

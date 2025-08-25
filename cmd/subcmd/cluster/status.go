@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -55,11 +54,10 @@ func printClusterStatus(hostPort string) error {
 		return printMasterSlaveStatus(seedNode)
 	}
 	// get cluster instances by running `cluster nodes` on seed node
-	clusterNodesOutput, err := seedNode.Client.ClusterNodes(context.Background()).Result()
+	clusterNodesInfo, err := r.ParseClusterNodes(seedNode.Client)
 	if err != nil {
-		return fmt.Errorf("failed to get cluster nodes: %v", err)
+		return err
 	}
-	clusterNodesInfo := r.ParseClusterNodes(clusterNodesOutput)
 	// get cluster instances simultaneously
 	var (
 		clusterInstances []*r.Instance
@@ -90,8 +88,7 @@ func printClusterStatus(hostPort string) error {
 	wg.Wait()
 	// Print Cluster Basic Info
 	fmt.Println(strings.Repeat("=", 155))
-	fmt.Printf("%-20s", "Cluster Version:")
-	fmt.Println(seedNode.Version)
+	fmt.Printf("%-16s:\t%s\n", "Cluster Version", seedNode.Version)
 	fmt.Println(strings.Repeat("=", 155))
 	// Print Node Banner
 	color.Cyan("%-45s%-24s%-16s%-16s%-16s%-16s%-12s%s\n", "NodeID", "Address", "Role", "Memory(GB)",
@@ -206,8 +203,7 @@ func printMasterSlaveStatus(seedNode *r.Instance) error {
 	wg.Wait()
 	// Print Cluster Basic Info
 	fmt.Println(strings.Repeat("=", 79))
-	fmt.Printf("%-20s", "Cluster Version:")
-	fmt.Println(seedNode.Version)
+	fmt.Printf("%-16s:\t%s\n", "Cluster Version", seedNode.Version)
 	fmt.Println(strings.Repeat("=", 79))
 	// Print Node Banner
 	color.Cyan("%-24s%-16s%-16s%-16s%s\n", "Address", "Role", "Memory(GB)", "KeysCount", "Clients")

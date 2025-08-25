@@ -72,12 +72,10 @@ func printClusterExecuteResult(hostPort string) error {
 		return printMasterSlaveExecuteResult(seedNode)
 	}
 	// get cluster instances by running `cluster nodes` on seed node
-	clusterNodesOutput, err := seedNode.Client.ClusterNodes(context.Background()).Result()
+	clusterNodesInfo, err := r.ParseClusterNodes(seedNode.Client)
 	if err != nil {
-		return fmt.Errorf("failed to get cluster nodes: %v", err)
+		return err
 	}
-	clusterNodesInfo := r.ParseClusterNodes(clusterNodesOutput)
-
 	// get cluster instances, then filter it by nodes or role
 	var (
 		clusterInstances []*r.Instance
