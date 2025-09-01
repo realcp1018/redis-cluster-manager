@@ -55,6 +55,8 @@ Done!
 ```
 
 ## Installation
+Linux:
+
 There are two ways to install `rcm`:
 - Build from source:
 ```
@@ -76,7 +78,8 @@ Then unzip it to `/usr/local/bin/` or any other directory in your PATH.
 - [x] add a (init) flag for slaves with master_sync_in_progress=1
 - [x] check if slots count=16384 for cluster status
 #### 2) New Features
-- [ ] add support for master-slave/sentinel cluster
+- [x] add support for master-slave cluster
+- [ ] add cluster slowlog parser
 - [ ] add cluster keymap, displays histogram distributions of keys across different length ranges. You can specify a 
 comma-separated list of bucket boundaries and a sampling rate for keymap.
 

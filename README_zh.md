@@ -51,6 +51,7 @@ Done!
 ```
 
 ## 安装部署
+Linux:
 ```
 git clone https://code.wifi.com/mysql/redis-cluster-manager.git
 cd redis-cluster-manager
@@ -64,6 +65,8 @@ go build -o rcm main.go
 ```
 手动build出来的文件不包含版本信息等。
 
+或者也可以直接从Releases下载rcm.zip，解压后即可使用。
+
 ## TODO：
 #### 1) 改进
 - [x] 支持keysCount展示
@@ -73,5 +76,6 @@ go build -o rcm main.go
 - [x] 处于全量同步状态的slave role之后新增(init)标识，表示处于全量同步过程中
 - [x] 增加slots总数校验
 #### 2) 新功能
-- [ ] 增加对主从集群的支持
+- [x] 增加对主从集群的支持
+- [ ] 为cluster增加slowlog分析功能
 - [ ] 为cluster增加新的keymap功能，以直方图形式展示keys在不同长度范围的分布，支持输入逗号分隔的buckets列表，支持采样率设置
