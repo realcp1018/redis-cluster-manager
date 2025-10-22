@@ -91,8 +91,10 @@ func (i *Instance) GetMasterSlaveMembers() ([]string, error) {
 		if master.Role != "master" {
 			return nil, fmt.Errorf("cascading replication is not supported")
 		}
+		// you need to be a master to get all members
 		return master.GetMasterSlaveMembers()
 	}
+	// append master addr to members. then all it's slaves
 	members := []string{i.Addr}
 	replInfo, err := ParseInfo(i.Client, "replication")
 	if err != nil {

@@ -60,7 +60,9 @@ func printClusterStatus(hostPort string) error {
 	}
 	// get cluster instances simultaneously
 	var (
-		clusterInstances []*r.Instance
+		clusterInstances []*r.Instance // all instances that can be connected
+		displayedSlaves  []*r.Instance // slaves that have alive master
+		OrphanedSlaves   []*r.Instance // slaves that have no alive master, clusterInstances - displayedSlaves
 		mu               sync.Mutex
 		wg               sync.WaitGroup
 		warnings         sync.Map     // instances can not be created err messages
@@ -126,6 +128,7 @@ func printClusterStatus(hostPort string) error {
 		for _, i := range clusterInstances {
 			if i.Master == m.Addr {
 				slaves = append(slaves, i)
+				displayedSlaves = append(displayedSlaves, i)
 			}
 		}
 		sortedSlaves := r.InstancesAscByAddr(slaves)
@@ -142,7 +145,43 @@ func printClusterStatus(hostPort string) error {
 			fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", s.UsedMemory, s.MaxMemory))
 			fmt.Printf("%-16s", s.KeysCount)
 			fmt.Printf("%-16s", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
-			// if slave, skip slot info
+			// skip slot info for slave
+			fmt.Printf("%-12s", "")
+			fmt.Printf("%s\n", "")
+		}
+	}
+	// when a master's connection count reaches maxclients, no new connections are allowed,
+	// that means it is alive, but we can not create an instance for it, so it seems it's slaves are orphaned.
+	// we need to display these orphaned slaves in the end
+	for _, i := range clusterInstances {
+		if i.Role == "slave" {
+			slaveDisplayed := false
+			for _, ds := range displayedSlaves {
+				if i.Addr == ds.Addr {
+					slaveDisplayed = true
+					break
+				}
+			}
+			if !slaveDisplayed {
+				OrphanedSlaves = append(OrphanedSlaves, i)
+			}
+		}
+	}
+	if len(OrphanedSlaves) > 0 {
+		color.Red("Orphaned Slaves (whose masters can not connected, see Warnings below):")
+		for _, os := range OrphanedSlaves {
+			fmt.Printf("%-45s", os.NodeID)
+			fmt.Printf("%-24s", os.Addr)
+			if os.SlaveInit {
+				fmt.Printf("%-16s", "-slave(init)")
+			} else {
+				fmt.Printf("%-16s", "-slave")
+			}
+
+			fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", os.UsedMemory, os.MaxMemory))
+			fmt.Printf("%-16s", os.KeysCount)
+			fmt.Printf("%-16s", fmt.Sprintf("%d/%d", os.ClientsCount, os.MaxClients))
+			// skip slot info for slave
 			fmt.Printf("%-12s", "")
 			fmt.Printf("%s\n", "")
 		}
