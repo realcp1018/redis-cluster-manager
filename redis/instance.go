@@ -61,7 +61,7 @@ func (i *Instance) init() error {
 	i.UsedMemory = math.Round(usedMemoryBytes/1024/1024/1024*100) / 100
 
 	i.ClientsCount, _ = strconv.Atoi(infoMap["connected_clients"])
-	i.MaxClients, _ = strconv.Atoi(infoMap["maxclients"]) // if no maxclients it returns (0,error), we ignore this error
+	i.MaxClients, _ = strconv.Atoi(ParseConfigGet(i.Client, "maxclients"))
 
 	clusterEnabled := infoMap["cluster_enabled"]
 	if clusterEnabled == "1" {

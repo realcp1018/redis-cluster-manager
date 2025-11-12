@@ -79,3 +79,4 @@ go build -o rcm main.go
 - [x] 增加对主从集群的支持
 - [ ] 为cluster增加slowlog分析功能
 - [ ] 为cluster增加新的keymap功能，以直方图形式展示keys在不同长度范围的分布，支持输入逗号分隔的buckets列表，支持采样率设置
+- [ ] 增加rcm cluster check命令，在集群所有节点执行cluster nodes指令，结果排序后去重，找出不一致的节点信息

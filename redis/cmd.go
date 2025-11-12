@@ -67,3 +67,12 @@ func ParseClientList(client *redis.Client) ([]map[string]string, error) {
 	}
 	return results, nil
 }
+
+// ParseConfigGet: config get goes well even parameter is not exist, so no error check here
+func ParseConfigGet(client *redis.Client, parameter string) string {
+	cmdOutput, err := client.ConfigGet(context.Background(), parameter).Result()
+	if err != nil || len(cmdOutput) == 0 {
+		return ""
+	}
+	return cmdOutput[parameter]
+}
