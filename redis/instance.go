@@ -89,7 +89,7 @@ func (i *Instance) GetMasterSlaveMembers() ([]string, error) {
 		}
 		defer master.Close()
 		if master.Role != "master" {
-			return nil, fmt.Errorf("cascading replication is not supported")
+			return nil, fmt.Errorf("cascading replication cannot displayed, try use current master as seednode")
 		}
 		// you need to be a master to get all members
 		return master.GetMasterSlaveMembers()
