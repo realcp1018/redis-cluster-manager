@@ -76,3 +76,21 @@ func ParseConfigGet(client *redis.Client, parameter string) string {
 	}
 	return cmdOutput[parameter]
 }
+
+// ParseClusterInfo parses the Redis `cluster info` command output
+func ParseClusterInfo(client *redis.Client) (map[string]string, error) {
+	result := make(map[string]string)
+	cmdOutput, err := client.ClusterInfo(context.Background()).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to run cluster info: %v", err)
+	}
+	lines := strings.Split(cmdOutput, "\n")
+	for _, line := range lines {
+		if len(strings.TrimSpace(line)) == 0 {
+			continue
+		}
+		parts := strings.SplitN(line, ":", 2)
+		result[parts[0]] = strings.TrimSpace(parts[1])
+	}
+	return result, nil
+}

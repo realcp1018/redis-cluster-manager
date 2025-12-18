@@ -53,6 +53,14 @@ func printClusterStatus(hostPort string) error {
 	if !seedNode.ClusterEnabled {
 		return printMasterSlaveStatus(seedNode)
 	}
+	clusterInfo, err := r.ParseClusterInfo(seedNode.Client)
+	if err != nil {
+		return err
+	}
+	clusterState := clusterInfo["cluster_state"]
+	if clusterState == "fail" {
+		return fmt.Errorf("seed node cluster mode ON, but it's cluster state is fail, might be a orphaned node")
+	}
 	// get cluster instances by running `cluster nodes` on seed node
 	clusterNodesInfo, err := r.ParseClusterNodes(seedNode.Client)
 	if err != nil {
