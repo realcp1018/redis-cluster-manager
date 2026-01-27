@@ -79,8 +79,9 @@ Then unzip it to `/usr/local/bin/` or any other directory in your PATH.
 - [x] check if slots count=16384 for cluster status
 #### 2) New Features
 - [x] add support for master-slave cluster
-- [ ] add cluster slowlog parser
-- [ ] add cluster keymap, displays histogram distributions of keys across different length ranges. You can specify a 
+- [ ] add cluster slowlog parser, collect slowlogs from all nodes and display in a unified way.
+- [ ] add instance monitor parser, collect `monitor` result from seed node and display cmd distribution
+- [ ] add instance keymap, displays histogram distributions of keys across different length ranges. You can specify a 
 comma-separated list of bucket boundaries and a sampling rate for keymap.
 
 ## FAQ
