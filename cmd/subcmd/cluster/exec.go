@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	redisCmd string // the redis command to be executed
-	nodes    string // comma separated nodeID or ip:port
-	role     string // master/slave/all
+	redisCmd []string // the redis command to be executed
+	nodes    string   // comma separated nodeID or ip:port
+	role     string   // master/slave/all
 )
 
 var ExecCmd = &cobra.Command{
@@ -27,8 +27,10 @@ var ExecCmd = &cobra.Command{
 If master/slave/all specified, cmd will be run on masters/slaves/all nodes.
 If no nodes&&roles specified, cmd will run on the seed node itself.
 The -n and -r options are mutually exclusive.`,
-	Args:    cobra.ExactArgs(1),
-	Example: fmt.Sprintf("%s cluster exec <seed-node> -a \"password\" -c \"PING\" [-n=<nodeID/ip:port,...> | -r=<master/slave/all>]", vars.AppName),
+	Example: fmt.Sprintf(
+		"%s cluster exec <seed-node> <cmd> -a \"password\" [-n=<nodeID/ip:port,...> | -r=<master/slave/all>]\n"+
+			"%s cluster exec <seed-node> -a \"password\" [-n=<nodeID/ip:port,...> | -r=<master/slave/all>] -- <cmd>",
+		vars.AppName, vars.AppName),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vars.HostPort = args[0]
 		if len(role) > 0 {
@@ -36,6 +38,7 @@ The -n and -r options are mutually exclusive.`,
 				return fmt.Errorf("role must be `master` or `slave` or `all` when specified")
 			}
 		}
+		redisCmd = args[1:]
 		f := perf.StartCpuProfile()
 		defer perf.StopCpuProfile(f)
 		if err := printClusterExecuteResult(vars.HostPort); err != nil {
@@ -47,7 +50,6 @@ The -n and -r options are mutually exclusive.`,
 }
 
 func InitExecParams() {
-	ExecCmd.Flags().StringVarP(&redisCmd, "cmd", "c", "PING", "redis command to be executed")
 	ExecCmd.Flags().StringVarP(&nodes, "nodes", "n", "", "nodes to be executed on")
 	ExecCmd.Flags().StringVarP(&role, "role", "r", "", "role to be executed on, one of [master, slave, all]")
 	ExecCmd.MarkFlagsMutuallyExclusive("nodes", "role")
@@ -57,10 +59,9 @@ func InitExecParams() {
 // same as printClusterStatus, if cluster is a master-slave/sentinel cluster, it calls PrintMasterSlaveExecuteResult
 func printClusterExecuteResult(hostPort string) error {
 	// validate redisCmd
-	cmdFields := strings.Fields(redisCmd)
-	_, exists := vars.ForbiddenCmds[strings.ToUpper(cmdFields[0])]
+	_, exists := vars.ForbiddenCmds[strings.ToUpper(redisCmd[0])]
 	if exists {
-		return fmt.Errorf("command `%s` is forbidden to execute", cmdFields[0])
+		return fmt.Errorf("command `%s` is forbidden to execute", redisCmd[0])
 	}
 	// we call the provided node as `the seed node`
 	seedNode, err := r.NewInstance(hostPort)
@@ -117,13 +118,12 @@ func printClusterExecuteResult(hostPort string) error {
 		wgExec.Add(1)
 		go func(i *r.Instance) {
 			defer wgExec.Done()
-			fields := strings.Fields(redisCmd)
-			if len(fields) == 0 {
+			if len(redisCmd) == 0 {
 				results.Store(i.Addr, "")
 				return
 			}
-			args := make([]interface{}, 0, len(fields)-1)
-			for _, f := range fields {
+			args := make([]interface{}, 0, len(redisCmd))
+			for _, f := range redisCmd {
 				args = append(args, f)
 			}
 			var addrDisplayed = i.Addr
@@ -201,13 +201,12 @@ func printMasterSlaveExecuteResult(seedNode *r.Instance) error {
 		wgExec.Add(1)
 		go func(i *r.Instance) {
 			defer wgExec.Done()
-			fields := strings.Fields(redisCmd)
-			if len(fields) == 0 {
+			if len(redisCmd) == 0 {
 				results.Store(i.Addr, "")
 				return
 			}
-			args := make([]interface{}, 0, len(fields)-1)
-			for _, f := range fields {
+			args := make([]interface{}, 0, len(redisCmd))
+			for _, f := range redisCmd {
 				args = append(args, f)
 			}
 			stdout, err := i.Client.Do(context.Background(), args...).Result()
