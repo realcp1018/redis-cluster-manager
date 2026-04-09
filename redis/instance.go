@@ -55,9 +55,9 @@ func (i *Instance) init() error {
 		}
 	}
 
-	maxMemoryBytes, _ := strconv.ParseFloat(infoMap["maxmemory"], 64)
+	maxMemoryBytes, _ := strconv.ParseFloat(ParseConfigGet(i.Client, "maxmemory"), 64)
 	usedMemoryBytes, _ := strconv.ParseFloat(infoMap["used_memory"], 64)
-	i.MaxMemory = math.Round(maxMemoryBytes/1024/1024/1024*100) / 100 // convert to GB and round to 2 digits
+	i.MaxMemory = math.Round(maxMemoryBytes/1024/1024/1024*100) / 100
 	i.UsedMemory = math.Round(usedMemoryBytes/1024/1024/1024*100) / 100
 
 	i.ClientsCount, _ = strconv.Atoi(infoMap["connected_clients"])
