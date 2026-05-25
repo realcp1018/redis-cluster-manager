@@ -9,6 +9,7 @@ import (
 	"redis-cluster-manager/perf"
 	r "redis-cluster-manager/redis"
 	"redis-cluster-manager/vars"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -126,25 +127,26 @@ func printClusterExecuteResult(hostPort string) error {
 			for _, f := range redisCmd {
 				args = append(args, f)
 			}
-			var addrDisplayed = i.Addr
-			if filterType == vars.FILTER_NODEID {
-				addrDisplayed = fmt.Sprintf("%s(%s)", i.Addr, i.NodeID)
-			}
 			stdout, err := i.Client.Do(context.Background(), args...).Result()
 			if err != nil {
-				results.Store(addrDisplayed, fmt.Sprintf("Error executing command: %v", err))
+				results.Store(i.Addr, fmt.Sprintf("Error executing command: %v", err))
 			} else {
-				results.Store(addrDisplayed, stdout)
+				results.Store(i.Addr, stdout)
 			}
 		}(instance)
 	}
 	wgExec.Wait()
 	// print results
-	results.Range(func(addr, stdout interface{}) bool {
-		color.Yellow("Output of `%s` on %s:\n", redisCmd, addr)
+	sort.Sort(r.InstancesAscByAddr(execInstances))
+	for _, instance := range execInstances {
+		addrDisplayed := instance.Addr
+		if filterType == vars.FILTER_NODEID {
+			addrDisplayed = fmt.Sprintf("%s(%s)", instance.Addr, instance.NodeID)
+		}
+		stdout, _ := results.Load(instance.Addr)
+		color.Yellow("Output of `%s` on %s:\n", redisCmd, addrDisplayed)
 		fmt.Println(stdout)
-		return true
-	})
+	}
 	if errInstanceCount.Load() != 0 {
 		color.Cyan("Warnings:")
 		warnings.Range(func(nodeInfo, stdout interface{}) bool {
@@ -219,11 +221,12 @@ func printMasterSlaveExecuteResult(seedNode *r.Instance) error {
 	}
 	wgExec.Wait()
 	// print results
-	results.Range(func(addr, stdout interface{}) bool {
-		color.Yellow("Output of `%s` on %s:\n", redisCmd, addr)
+	sort.Sort(r.InstancesAscByAddr(execInstances))
+	for _, instance := range execInstances {
+		stdout, _ := results.Load(instance.Addr)
+		color.Yellow("Output of `%s` on %s:\n", redisCmd, instance.Addr)
 		fmt.Println(stdout)
-		return true
-	})
+	}
 	if errInstancesCount.Load() != 0 {
 		color.Cyan("Warnings:")
 		warnings.Range(func(addr, stdout interface{}) bool {

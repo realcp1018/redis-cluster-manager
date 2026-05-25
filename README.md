@@ -1,11 +1,11 @@
 # Redis Cluster Manager
 
-A cluster manager for redis cluster, to display cluster status && execute cmd on a set of it's members.
+A cluster manager for Redis Cluster and Redis master-slave deployments. It displays topology/status information and executes Redis commands on selected members. Some high-risk Redis commands are forbidden.
 
 [Readme.md: 简体中文](README_zh.md)
 
 ## Introduction
-Name: `rcm`, the first arg is a seed node(`IP:PORT`):
+Name: `rcm`. Cluster subcommands take a seed node in `IP:PORT` format.
 - cluster status
 ```
 rcm cluster status 127.0.0.1:6379 -a "password"
@@ -20,36 +20,43 @@ Output:
 =======================================================================================================
 Cluster Version:    7.0.9
 =======================================================================================================
-NodeID                                       Addr                    Role      Mem(GB)         Client          
-------                                       ----                    ----      -------         ------          
-90c7c50bf195ba10e2fbf5a90d12b2ed570e3352     1.1.1.1:6379            master    0.24/10.00      29/20000        
-57c63639108496dd5349863a9589408a7f5b385c     1.1.1.2:6379            -slave    0.24/10.00      12/20000                    
-ef2ad9890ab216c311de4f66995bbcb72bada047     1.1.1.1:6380            master    0.24/10.00      31/20000       
-8f259674d2742cbcbdaf23c070e032c368090c83     1.1.1.2:6380            -slave    0.24/10.00      15/20000                    
+NodeID                                       Address                 Role            Memory(GB)      KeysCount       Clients         Slots       SlotRanges
+------                                       -------                 ----            ----------      ---------       -------         -----       ----------
+90c7c50bf195ba10e2fbf5a90d12b2ed570e3352     1.1.1.1:6379            master          0.24/10.00      1024            29/20000        5461        ...
+57c63639108496dd5349863a9589408a7f5b385c     1.1.1.2:6379            -slave          0.24/10.00      1024            12/20000
+ef2ad9890ab216c311de4f66995bbcb72bada047     1.1.1.1:6380            master          0.24/10.00      2048            31/20000        5462        ...
+8f259674d2742cbcbdaf23c070e032c368090c83     1.1.1.2:6380            -slave(init)    0.24/10.00      2048            15/20000
 ...         
-Total nodes in cluster: 6
-Total shard in cluster: 3
+Total up masters in cluster: 3
+Total up members in cluster: 6
 ```
 - cluster exec
 ```
 # exec on seed node only:
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING"
+rcm cluster exec 127.0.0.1:6379 -a "password" -- PING
 # exec on provided nodes:
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -n "1.1.1.1:6379,1.1.1.2:6379"
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -n "90c7...,8f25..."  # can be node ID
+rcm cluster exec 127.0.0.1:6379 -a "password" -n "1.1.1.1:6379,1.1.1.2:6379" -- PING
+rcm cluster exec 127.0.0.1:6379 -a "password" -n "90c7...,8f25..." -- PING  # can be node ID
 # exec on all master nodes/slave nodes:
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -r master
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -r slave
+rcm cluster exec 127.0.0.1:6379 -a "password" -r master -- PING
+rcm cluster exec 127.0.0.1:6379 -a "password" -r slave -- PING
 # exec on all nodes:
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -r all
+rcm cluster exec 127.0.0.1:6379 -a "password" -r all -- PING
+
+# commands with arguments:
+rcm cluster exec 127.0.0.1:6379 -a "password" -- GET mykey
+rcm cluster exec 127.0.0.1:6379 -a "password" -- SET mykey myvalue
 ```
-Options -n and -c are mutually exclusive, Run `rcm -h` for usage information.
+
+The Redis command is positional; there is no `-c` option. Use `--` before the Redis command when the command or its arguments come after `rcm` flags. Options `-n` and `-r` are mutually exclusive. Run `rcm cluster exec -h` for usage information.
+
+Forbidden commands: `DEBUG`, `FLUSHALL`, `FLUSHDB`, `SHUTDOWN`, `MONITOR`.
 
 output of cluster exec:
 ```text
-Output of `ping` on 1.1.1.1:6379 :
+Output of `[PING]` on 1.1.1.1:6379:
 PONG
-Output of `ping` on 1.1.1.1:6380 :
+Output of `[PING]` on 1.1.1.1:6380:
 PONG
 Done!
 ```

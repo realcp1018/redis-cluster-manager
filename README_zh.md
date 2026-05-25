@@ -1,9 +1,9 @@
 # Redis Cluster Manager
 
-一个用 Go 语言编写的 Redis 集群管理工具，支持集群状态展示，并发执行 Redis 指令的功能(禁用了一些高危指令)。
+一个用 Go 语言编写的 Redis Cluster 和 Redis 主从部署管理工具，支持拓扑/状态展示，并发执行 Redis 指令的功能(禁用了一些高危指令)。
 
 ## 基本功能
-我们把命令行工具命名为 `rcm`，其首个参数为seed node(格式为`IP:PORT`)：
+我们把命令行工具命名为 `rcm`。集群子命令需要传入 seed node，格式为 `IP:PORT`：
 - 集群状态展示
 ```
 rcm cluster status 127.0.0.1:6379 -a "password"
@@ -17,35 +17,42 @@ rcm cluster status 127.0.0.1:6379 -a "password" -s
 =======================================================================================================
 Cluster Version:    7.0.9
 =======================================================================================================
-NodeID                                       Addr                    Role      Mem(GB)         Client          
-------                                       ----                    ----      -------         ------          
-90c7c50bf195ba10e2fbf5a90d12b2ed570e3352     1.1.1.1:6379            master    0.24/10.00      29/20000        
-57c63639108496dd5349863a9589408a7f5b385c     1.1.1.2:6379            -slave    0.24/10.00      12/20000                    
-ef2ad9890ab216c311de4f66995bbcb72bada047     1.1.1.1:6380            master    0.24/10.00      31/20000       
-8f259674d2742cbcbdaf23c070e032c368090c83     1.1.1.2:6380            -slave    0.24/10.00      15/20000                    
+NodeID                                       Address                 Role            Memory(GB)      KeysCount       Clients         Slots       SlotRanges
+------                                       -------                 ----            ----------      ---------       -------         -----       ----------
+90c7c50bf195ba10e2fbf5a90d12b2ed570e3352     1.1.1.1:6379            master          0.24/10.00      1024            29/20000        5461        ...
+57c63639108496dd5349863a9589408a7f5b385c     1.1.1.2:6379            -slave          0.24/10.00      1024            12/20000
+ef2ad9890ab216c311de4f66995bbcb72bada047     1.1.1.1:6380            master          0.24/10.00      2048            31/20000        5462        ...
+8f259674d2742cbcbdaf23c070e032c368090c83     1.1.1.2:6380            -slave(init)    0.24/10.00      2048            15/20000
 ...         
-Total nodes in cluster: 6
-Total shard in cluster: 3
+Total up masters in cluster: 3
+Total up members in cluster: 6
 ```
 - 并发执行 Redis 指令
 ```
 # 仅在seed节点执行：
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING"
+rcm cluster exec 127.0.0.1:6379 -a "password" -- PING
 # 在指定节点执行：
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -n "1.1.1.1:6379,1.1.1.2:6379"
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -n "90c7...,8f25..."  # 节点ID
+rcm cluster exec 127.0.0.1:6379 -a "password" -n "1.1.1.1:6379,1.1.1.2:6379" -- PING
+rcm cluster exec 127.0.0.1:6379 -a "password" -n "90c7...,8f25..." -- PING  # 节点ID
 # 在所有master/slave节点执行：
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -r master
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -r slave
+rcm cluster exec 127.0.0.1:6379 -a "password" -r master -- PING
+rcm cluster exec 127.0.0.1:6379 -a "password" -r slave -- PING
 # 在所有节点执行：
-rcm cluster exec 127.0.0.1:6379 -a "password" -c "PING" -r all
+rcm cluster exec 127.0.0.1:6379 -a "password" -r all -- PING
+
+# 执行带参数的 Redis 指令：
+rcm cluster exec 127.0.0.1:6379 -a "password" -- GET mykey
+rcm cluster exec 127.0.0.1:6379 -a "password" -- SET mykey myvalue
 ```
--n与-c参数互斥，使用 `rcm -h 查看帮助。
+Redis 指令是位置参数，没有 `-c` 选项。当 Redis 指令或其参数位于 `rcm` 参数之后时，建议使用 `--` 分隔。`-n` 与 `-r` 参数互斥，使用 `rcm cluster exec -h` 查看帮助。
+
+禁用的高危指令：`DEBUG`、`FLUSHALL`、`FLUSHDB`、`SHUTDOWN`、`MONITOR`。
+
 输出示例:
 ```text
-Output of `ping` on 1.1.1.1:6379 :
+Output of `[PING]` on 1.1.1.1:6379:
 PONG
-Output of `ping` on 1.1.1.1:6380 :
+Output of `[PING]` on 1.1.1.1:6380:
 PONG
 Done!
 ```
