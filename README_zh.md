@@ -1,6 +1,6 @@
 # Redis Cluster Manager
 
-一个用 Go 语言编写的 Redis Cluster 和 Redis 主从部署管理工具，支持拓扑/状态展示，并发执行 Redis 指令的功能(禁用了一些高危指令)。
+一个用 Go 语言编写的 Redis Cluster 管理工具，支持拓扑/状态展示，并发执行 Redis 指令的功能(禁用了一些高危指令)。
 
 ## 基本功能
 我们把命令行工具命名为 `rcm`。集群子命令需要传入 seed node，格式为 `IP:PORT`：

@@ -1,6 +1,6 @@
 # Redis Cluster Manager
 
-A cluster manager for Redis Cluster and Redis master-slave deployments. It displays topology/status information and executes Redis commands on selected members. Some high-risk Redis commands are forbidden.
+A cluster manager for Redis Cluster and Redis master-slave. It displays topology/status information and executes Redis commands on selected members. Some high-risk Redis commands are forbidden.
 
 [Readme.md: 简体中文](README_zh.md)
 
