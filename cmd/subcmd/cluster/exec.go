@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/fatih/color"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cobra"
 	"net/netip"
 	"redis-cluster-manager/perf"
@@ -128,11 +129,7 @@ func printClusterExecuteResult(hostPort string) error {
 				args = append(args, f)
 			}
 			stdout, err := i.Client.Do(context.Background(), args...).Result()
-			if err != nil {
-				results.Store(i.Addr, fmt.Sprintf("Error executing command: %v", err))
-			} else {
-				results.Store(i.Addr, stdout)
-			}
+			results.Store(i.Addr, formatExecResult(stdout, err))
 		}(instance)
 	}
 	wgExec.Wait()
@@ -212,11 +209,7 @@ func printMasterSlaveExecuteResult(seedNode *r.Instance) error {
 				args = append(args, f)
 			}
 			stdout, err := i.Client.Do(context.Background(), args...).Result()
-			if err != nil {
-				results.Store(i.Addr, fmt.Sprintf("Error executing command: %v", err))
-			} else {
-				results.Store(i.Addr, stdout)
-			}
+			results.Store(i.Addr, formatExecResult(stdout, err))
 		}(instance)
 	}
 	wgExec.Wait()
@@ -236,6 +229,16 @@ func printMasterSlaveExecuteResult(seedNode *r.Instance) error {
 	}
 	color.Cyan("Done!")
 	return nil
+}
+
+func formatExecResult(stdout interface{}, err error) interface{} {
+	if err == redis.Nil {
+		return "(nil)"
+	}
+	if err != nil {
+		return fmt.Sprintf("Error executing command: %v", err)
+	}
+	return stdout
 }
 
 // filterInstances filters the cluster instances based on the provided nodes or role flags.
