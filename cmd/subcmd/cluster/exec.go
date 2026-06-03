@@ -99,7 +99,7 @@ func printClusterExecuteResult(hostPort string) error {
 				errInstanceCount.Add(1)
 				return
 			} else {
-				i.UpdateNodeIdAndSlots(clusterNodesInfo)
+				i.UpdateNodeClusterInfo(clusterNodesInfo)
 				mu.Lock()
 				clusterInstances = append(clusterInstances, i)
 				mu.Unlock()

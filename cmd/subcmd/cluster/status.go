@@ -88,7 +88,7 @@ func printClusterStatus(hostPort string) error {
 				errInstanceCount.Add(1)
 				return
 			} else {
-				i.UpdateNodeIdAndSlots(clusterNodesInfo)
+				i.UpdateNodeClusterInfo(clusterNodesInfo)
 				mu.Lock()
 				clusterInstances = append(clusterInstances, i)
 				mu.Unlock()
@@ -121,10 +121,10 @@ func printClusterStatus(hostPort string) error {
 		// print master info
 		fmt.Print(color.RedString("%-45s", m.NodeID))
 		fmt.Print(color.RedString("%-24s", m.Addr))
-		fmt.Printf("%-16s", "master")
-		fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", m.UsedMemory, m.MaxMemory))
-		fmt.Printf("%-16s", m.KeysCount)
-		fmt.Printf("%-16s", fmt.Sprintf("%d/%d", m.ClientsCount, m.MaxClients))
+		fmt.Printf("%-16s", formatRole(m, false))
+		fmt.Printf("%-16s", formatMemory(m))
+		fmt.Printf("%-16s", formatKeysCount(m))
+		fmt.Printf("%-16s", formatClients(m))
 		fmt.Printf("%-12d", m.GetSlotCount())
 		if showSlots {
 			fmt.Printf("%s\n", m.StringSlots())
@@ -144,15 +144,10 @@ func printClusterStatus(hostPort string) error {
 		for _, s := range sortedSlaves {
 			fmt.Printf("%-45s", s.NodeID)
 			fmt.Printf("%-24s", s.Addr)
-			if s.SlaveInit {
-				fmt.Printf("%-16s", "-slave(init)")
-			} else {
-				fmt.Printf("%-16s", "-slave")
-			}
-
-			fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", s.UsedMemory, s.MaxMemory))
-			fmt.Printf("%-16s", s.KeysCount)
-			fmt.Printf("%-16s", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
+			fmt.Printf("%-16s", formatRole(s, true))
+			fmt.Printf("%-16s", formatMemory(s))
+			fmt.Printf("%-16s", formatKeysCount(s))
+			fmt.Printf("%-16s", formatClients(s))
 			// skip slot info for slave
 			fmt.Printf("%-12s", "")
 			fmt.Printf("%s\n", "")
@@ -180,15 +175,10 @@ func printClusterStatus(hostPort string) error {
 		for _, os := range OrphanedSlaves {
 			fmt.Printf("%-45s", os.NodeID)
 			fmt.Printf("%-24s", os.Addr)
-			if os.SlaveInit {
-				fmt.Printf("%-16s", "-slave(init)")
-			} else {
-				fmt.Printf("%-16s", "-slave")
-			}
-
-			fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", os.UsedMemory, os.MaxMemory))
-			fmt.Printf("%-16s", os.KeysCount)
-			fmt.Printf("%-16s", fmt.Sprintf("%d/%d", os.ClientsCount, os.MaxClients))
+			fmt.Printf("%-16s", formatRole(os, true))
+			fmt.Printf("%-16s", formatMemory(os))
+			fmt.Printf("%-16s", formatKeysCount(os))
+			fmt.Printf("%-16s", formatClients(os))
 			// skip slot info for slave
 			fmt.Printf("%-12s", "")
 			fmt.Printf("%s\n", "")
@@ -212,6 +202,41 @@ func printClusterStatus(hostPort string) error {
 		color.Red("Master slot count is not 16384(%d). Some slots missing or migrating. Please check your cluster status.", slotsCount)
 	}
 	return nil
+}
+
+func formatRole(i *r.Instance, slavePrefix bool) string {
+	role := i.Role
+	if role == "" {
+		role = "unknown"
+	}
+	if i.LoadingError || i.SlaveInit {
+		role += "(init)"
+	}
+	if slavePrefix {
+		return "-" + role
+	}
+	return role
+}
+
+func formatMemory(i *r.Instance) string {
+	if i.LoadingError {
+		return "-"
+	}
+	return fmt.Sprintf("%.2f/%.2f", i.UsedMemory, i.MaxMemory)
+}
+
+func formatKeysCount(i *r.Instance) string {
+	if i.LoadingError || i.KeysCount == "" {
+		return "-"
+	}
+	return i.KeysCount
+}
+
+func formatClients(i *r.Instance) string {
+	if i.LoadingError {
+		return "-"
+	}
+	return fmt.Sprintf("%d/%d", i.ClientsCount, i.MaxClients)
 }
 
 // printMasterSlaveStatus print status of a master-slave/sentinel cluster, called by printClusterStatus
@@ -257,24 +282,19 @@ func printMasterSlaveStatus(seedNode *r.Instance) error {
 	fmt.Printf("%-24s%-16s%-16s%-16s%s\n", "-------", "----", "----------", "---------", "-------")
 	// print master info
 	fmt.Print(color.RedString("%-24s", master.Addr))
-	fmt.Printf("%-16s", "master")
-	fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", master.UsedMemory, master.MaxMemory))
-	fmt.Printf("%-16s", master.KeysCount)
-	fmt.Printf("%s\n", fmt.Sprintf("%d/%d", master.ClientsCount, master.MaxClients))
+	fmt.Printf("%-16s", formatRole(master, false))
+	fmt.Printf("%-16s", formatMemory(master))
+	fmt.Printf("%-16s", formatKeysCount(master))
+	fmt.Printf("%s\n", formatClients(master))
 	// print slaves info
 	sortedUpSlaves := r.InstancesAscByAddr(upSlaves)
 	sort.Sort(sortedUpSlaves)
 	for _, s := range sortedUpSlaves {
 		fmt.Printf("%-24s", s.Addr)
-		if s.SlaveInit {
-			fmt.Printf("%-16s", "-slave(init)")
-		} else {
-			fmt.Printf("%-16s", "-slave")
-		}
-
-		fmt.Printf("%-16s", fmt.Sprintf("%.2f/%.2f", s.UsedMemory, s.MaxMemory))
-		fmt.Printf("%-16s", s.KeysCount)
-		fmt.Printf("%s\n", fmt.Sprintf("%d/%d", s.ClientsCount, s.MaxClients))
+		fmt.Printf("%-16s", formatRole(s, true))
+		fmt.Printf("%-16s", formatMemory(s))
+		fmt.Printf("%-16s", formatKeysCount(s))
+		fmt.Printf("%s\n", formatClients(s))
 	}
 	for _, i := range upSlaves {
 		i.Close()

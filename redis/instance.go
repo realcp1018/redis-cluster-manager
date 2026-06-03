@@ -21,6 +21,7 @@ type Instance struct {
 	MaxClients     int          // maximum number of clients allowed to connect to this instance
 	ClientsCount   int          // number of clients connected to this instance
 	ClusterEnabled bool         // true if this instance is part of a Redis Cluster
+	LoadingError   bool         // true if Redis returned LOADING while fetching instance info
 	Slots          []*SlotRange // list of SlotRange assigned to this instance
 	KeysCount      string       // number of keys in this instance
 	Version        string       // redis version
@@ -45,7 +46,11 @@ func NewInstance(hostPort string) (*Instance, error) {
 func (i *Instance) init() error {
 	infoMap, err := ParseInfo(i.Client, "all")
 	if err != nil {
-		return nil
+		if IsLoadingError(err) {
+			i.LoadingError = true
+			return nil
+		}
+		return err
 	}
 	i.Role = infoMap["role"]
 	if i.Role == "slave" {
@@ -138,14 +143,24 @@ func (i *Instance) GetSentinels() ([]string, error) {
 	return result, nil
 }
 
-// UpdateNodeIdAndSlots updates the NodeID and Slots of the instance using ParseClusterNodes output
-func (i *Instance) UpdateNodeIdAndSlots(clusterNodesInfo [][]string) {
+// UpdateNodeClusterInfo updates NodeID, Role, Master, and Slots from ParseClusterNodes output.
+func (i *Instance) UpdateNodeClusterInfo(clusterNodesInfo [][]string) {
+	nodeAddrs := make(map[string]string)
+	for _, nodeInfo := range clusterNodesInfo {
+		nodeAddrs[nodeInfo[0]] = nodeInfo[1]
+	}
 	for _, nodeInfo := range clusterNodesInfo {
 		nodeID := nodeInfo[0]
 		addr := nodeInfo[1]
 		slotsStr := nodeInfo[2]
 		if i.Addr == addr {
 			i.NodeID = nodeID
+			if i.LoadingError || i.Role == "" {
+				i.Role = nodeInfo[3]
+			}
+			if i.Role == "slave" && (i.LoadingError || i.Master == "") {
+				i.Master = nodeAddrs[nodeInfo[4]]
+			}
 			if i.Role == "master" {
 				i.Slots = newSlotRanges(slotsStr)
 			}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"redis-cluster-manager/vars"
-	"strings"
 )
 
 func newRedisClient(hostPort string) (*redis.Client, error) {
@@ -21,7 +20,7 @@ func newRedisClient(hostPort string) (*redis.Client, error) {
 	client := redis.NewClient(&opt)
 	pingResult, err := client.Ping(context.Background()).Result()
 	if err != nil {
-		if strings.Contains(err.Error(), "LOADING Redis is loading the dataset in memory") {
+		if IsLoadingError(err) {
 			return client, nil
 		}
 		return nil, fmt.Errorf("create redis client failed with error: %v", err)

@@ -25,7 +25,8 @@ func ParseInfo(client *redis.Client, section string) (map[string]string, error) 
 	return result, nil
 }
 
-// ParseClusterNodes parses the Redis `cluster nodes` command output and returns a slice of slice(nodeID, addr, slots)
+// ParseClusterNodes parses the Redis `cluster nodes` command output and returns a slice of
+// slice(nodeID, addr, slots, role, masterID)
 func ParseClusterNodes(client *redis.Client) ([][]string, error) {
 	var nodes [][]string
 	cmdOutput, err := client.ClusterNodes(context.Background()).Result()
@@ -38,10 +39,22 @@ func ParseClusterNodes(client *redis.Client) ([][]string, error) {
 			continue
 		}
 		parts := strings.Split(line, " ")
+		if len(parts) < 8 {
+			return nil, fmt.Errorf("invalid cluster nodes line: %s", line)
+		}
 		nodeID := parts[0]
 		addr := strings.Split(parts[1], "@")[0]
+		flags := strings.Split(parts[2], ",")
+		role := ""
+		for _, flag := range flags {
+			if flag == "master" || flag == "slave" {
+				role = flag
+				break
+			}
+		}
+		masterID := parts[3]
 		slots := strings.Join(parts[8:], " ")
-		nodes = append(nodes, []string{nodeID, addr, slots})
+		nodes = append(nodes, []string{nodeID, addr, slots, role, masterID})
 	}
 	return nodes, nil
 }
